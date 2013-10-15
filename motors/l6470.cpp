@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "l6470.h"
 
-/*inline L6470::L6470()
+/* L6470::L6470()
 {
     m_bus = 0;
     m_invertDir = 0;
@@ -75,7 +75,7 @@ L6470::L6470(ISPI* p_bus, uint32_t cfg)
 /** @brief Destroys the object and cleans up dynamically created SPI bus if present.
  *
  */
-inline L6470::~L6470()
+ L6470::~L6470()
 {
     if (m_ownBus)
         delete m_bus;
@@ -152,7 +152,7 @@ void L6470::setParam(uint8_t param, uint32_t value)
   *
   * @param spss The acceleration value in steps per second per second.
   */
-uint32_t L6470::setAccel(float spss)
+void L6470::setAccel(float spss)
 {
     float temp = spss * 0.137438;
     uint32_t regVal = (uint32_t) long(temp);
@@ -161,8 +161,6 @@ uint32_t L6470::setAccel(float spss)
         regVal = 0x00000FFF;
 
     setParam(dSPIN_ACC, regVal);
-
-    return regVal;
 }
 
 
@@ -173,7 +171,7 @@ uint32_t L6470::setAccel(float spss)
   *
   * @param spss The deceleration value in steps per second per second.
   */
-uint32_t L6470::setDecel(float spss)
+void L6470::setDecel(float spss)
 {
     float temp = spss * 0.137438;
     uint32_t regVal = (uint32_t) long(temp);
@@ -182,19 +180,18 @@ uint32_t L6470::setDecel(float spss)
         regVal = 0x00000FFF;
 
     setParam(dSPIN_DEC, regVal);
-
-    return regVal;
 }
 
 
-/** @brief Set the dSPIN maximum speed value.
+/** @brief Set the maximum speed parameter value.
  *
- * Sets the maximum speed cap for the motor.  Translates the value to the native
- * 10 bit value of the dSPIN register.
+ *  Sets the maximum speed cap for the motor.  Translates the value to the 
+ *  native 10 bit value of the dSPIN register.  Resolution is 15.25 steps/sec 
+ *  per increment of the number.
  *  
- * @param sps Maximum speed in steps per second
+ *  @param sps Maximum speed in steps per second
  */
-uint32_t L6470::setMaxSpeed(float sps)
+void L6470::setMaxSpeed(float sps)
 {
     float temp = sps * .065536;
     uint32_t regVal = (unsigned long) long(temp);
@@ -202,8 +199,42 @@ uint32_t L6470::setMaxSpeed(float sps)
         regVal = 0x000003FF;
 
     setParam(dSPIN_MAX_SPEED, regVal);
+}
 
-    return regVal;
+
+/** @brief Set the minimum speed parameter value.
+ *
+ *  Sets the minimum speed floor for the motor.  Translates the value to the 
+ *  native 12 bit value of the dSPIN register.  Resolution is .238 steps/sec per
+ *  increment of the number.
+ *
+ *  @param sps Maximum speed in steps per second
+ */
+void L6470::setMinSpeed(float sps)
+{
+    float temp = sps * 4.1943;
+    uint32_t regVal = (unsigned long) long(temp);
+    if( regVal > 0x00000FFF)
+        regVal = 0x00000FFF;
+    
+    setParam(dSPIN_MIN_SPEED, regVal);
+}
+
+
+/** @brief Set the full step threshold speed to the specfied step/sec value
+ *
+ *  Sets the threshold after which the chip will drive the stepper motor using
+ *  a full step sequence rather than microsteps.  Same bit size and resolution
+ *  as MAX_SPEED.
+ */
+void L6470::setFullStepThreshold(float sps)
+{
+    float temp = (sps * 0.065536) - 0.5;
+    uint32_t regVal = (unsigned long) long(temp);
+    if( regVal > 0x000003FF)
+        regVal = 0x000003FF;
+    
+    setParam(dSPIN_FS_SPD, regVal);
 }
 
 
@@ -275,15 +306,34 @@ uint8_t L6470::setMicroSteps(uint8_t val)
 /** @brief Set the ABS_POS register to the provided value.
  *
  *  @param pos The postion value to store in the register as a signed value relative to 0.
+ *  @return int32_t The previous position
  */
-int32_t L6470::setPosition(int32_t pos)
+void L6470::setPosition(int32_t pos)
 {
-    int32_t lastPos = getPosition();
-    
     pos &= 0x3FFFFF;                 // Limit value and preserve sign
     setParam(dSPIN_ABS_POS, pos);
-    
-    return lastPos;
+}
+
+
+/** @brief Set the motor position to the specified value relative to 0 in FULL STEPS.
+ *
+ *  @param pos The new motor position value to store in ABS_POS
+ */
+ void L6470::setPosition_FS(int32_t pos)
+{
+    setPosition(pos * m_msMode);
+}
+
+
+/** @brief Set the current position as the marked position
+ *
+ *  @return int32_t: The marked position in microsteps
+ */
+int32_t L6470::setMark()
+{
+    int32_t result = getPosition();
+    setParam(dSPIN_MARK, result);
+    return result;
 }
 
 
@@ -299,6 +349,42 @@ int L6470::setConfig(uint32_t cfg)
 {
     setParam(dSPIN_CONFIG, cfg);
     return 0;
+}
+
+
+/** @brief If set to true, inverts the meaning of the direction bit.
+ *
+ *  @param inv 0 = Non-inverted | 1 = Inverted
+ */
+ void L6470::invert(uint8_t inv)
+{
+    if (inv) m_invertDir = 1;
+    else m_invertDir = 0;
+}
+
+
+/** @brief Returns 1 if direction is inverted 0 otherwise.
+ *
+ *  @return uint8_t: Inverted setting
+ */
+ uint8_t L6470::isInverted()
+{
+    return m_invertDir;
+}
+
+
+/** @brief Get the motor direction from the device status register
+ *
+ *  @return uint8_t: The direction bit from the status register.
+ */
+uint8_t L6470::getDir()
+{
+    uint16_t status = getStatus();
+    status &= dSPIN_STATUS_DIR;
+    if (status)
+        return dirInvert(1);
+    else
+        return dirInvert(0);
 }
 
 
@@ -353,6 +439,50 @@ uint32_t L6470::getStatus()
     temp = dspin_xfer(0)<<8;
     temp |= dspin_xfer(0);
     return temp;
+}
+
+
+/** @brief Returns the value stored in the chip configuration register
+ *
+ *  @return uint32_t: Register value containing all the configuration bits
+ */
+ uint32_t L6470::getConfig()
+{
+    return getParam(dSPIN_CONFIG);
+}
+
+
+/** @brief Get the current motor position stored in the device
+ *
+ *  @return int32_t: Signed value for microsteps relative to the home 0 position.
+ */
+int32_t L6470::getPosition()
+{
+    int32_t regVal = getParam(dSPIN_ABS_POS);
+    int32_t result = 0;
+    
+    if(regVal > 0x1FFFFF)
+    {
+        result = regVal + 0xFFC00000;
+        return result;
+    }
+    else
+        return regVal;
+}
+
+
+/** @brief Returns the current position stored in the chip as FULL STEPS
+ *
+ *  This function returns the current position of the motor in full steps
+ *  as a 32 bit integer.  Returns either a positive or negative number relative
+ *  to the current 0 home position.
+ *
+ *  @return int32_t: Position value as signed value relative to home in full steps.
+ */
+ int32_t L6470::getPosition_FS()
+{
+    float pos = (getPosition() / m_msMode) + 0.5;
+    return (int32_t)pos;
 }
 
 
@@ -453,6 +583,20 @@ float L6470::getMinSpeed()
     float result = 0.0;
     uint32_t regVal = getParam(dSPIN_MIN_SPEED);
 
+    result = regVal/4.1943;
+    return result;
+}
+
+
+/** @brief Get the full step threshold value from the device
+ *
+ *  @return float: The full step theshold value in steps/sec
+ */
+float L6470::getFullStepThreshold()
+{
+    float result = 0.0;
+    uint32_t regVal = getParam(dSPIN_FS_SPD);
+    
     result = regVal/0.065536;
     return result;
 }
@@ -471,22 +615,22 @@ float L6470::getSpeed()
 }
 
 
-/** @brief Get the current motor position stored in the device
+/** @brief Returns the number of microsteps per full step.
  *
- *  @return int32_t: Signed value for microsteps relative to the home 0 position.
+ *  @return int: Microsteps per full physical motor step
  */
-int32_t L6470::getPosition()
+ uint8_t L6470::getMicroSteps()
 {
-    int32_t regVal = getParam(dSPIN_ABS_POS);
-    int32_t result = 0;
-    
-    if(regVal > 0x1FFFFF)
-    {
-        result = regVal + 0xFFC00000;
-        return result;
-    }
-    else
-        return regVal;
+    return m_msMode;
+}
+
+
+/** @brief Reset the dSPIN chip to power on defaults
+ *
+ */
+ void L6470::resetDev()
+{
+    dspin_xfer(dSPIN_RESET_DEVICE);
 }
 
 
@@ -536,6 +680,21 @@ void L6470::move(int32_t steps)
 }
 
 
+/** @brief Move the motor the specified number of FULL STEPS and direction.
+ *
+ * Motor will accelerate, run to the relative number of FULL STEPS specified
+ * and in the direction specified, then decelerate.
+ *
+ * @param  dir Motor direction 0=REV | 1=FWD
+ * @param  steps Number of FULL STEPS to move.
+ */
+ void L6470::move_FS(int32_t steps)
+{
+    steps *= m_msMode;
+    move(steps);
+}
+
+
 /** @brief Move the motor to the absolute microstep position specified.
  *
  *  Motor will accelerate, run to the relative number of microsteps specified
@@ -551,6 +710,17 @@ void L6470::gotoPosABS(int32_t pos)
     dspin_xfer((uint8_t)(abs_pos >> 16));
     dspin_xfer((uint8_t)(abs_pos >> 8));
     dspin_xfer((uint8_t)(abs_pos));
+}
+
+
+/** @brief Moves to the specfied absolute position in FULL STEPS in the direction specified.
+ *
+ *  @param pos The position to move to in FULL Steps
+ */
+ void L6470::gotoPosABS_FS(int32_t pos)
+{
+    pos *= m_msMode;
+    gotoPosABS(pos);
 }
 
 
@@ -579,6 +749,34 @@ void L6470::gotoPos(int32_t pos)
 }
 
 
+/** @brief Moves the motor to the specfied absolute position in FULL STEPS.
+ *
+ *  @param pos The absolute position to move to in FULL Steps
+ */
+ void L6470::gotoPos_FS(int32_t pos)
+{
+    pos *= m_msMode;
+    gotoPos(pos);
+}
+
+
+/** @brief Return to the abs position 0 at MAX_SPEED in shortest path possible.
+ *
+ */
+ void L6470::gotoHome()
+{
+    dspin_xfer(dSPIN_GO_HOME);
+}
+
+
+/** @brief Goto positon in MARK register at MAX_SPEED in shortest distance
+ *
+ */
+ void L6470::gotoMark()
+{
+    dspin_xfer(dSPIN_GO_MARK);
+}
+
 
 /** @brief Move at the indicated speed until a switch event is received.
  *
@@ -598,6 +796,47 @@ void L6470::goUntil(uint8_t act, uint8_t dir, float spd)
     dspin_xfer((uint8_t)(spdVal));
 }
 
+
+/** @brief Halt using the deceleration curve.
+ *
+ */
+ void L6470::softStop()
+{
+    dspin_xfer(dSPIN_SOFT_STOP);
+}
+
+
+/** @brief Halt using infinite deceleration.
+ *
+ */
+ void L6470::hardStop()
+{
+    dspin_xfer(dSPIN_HARD_STOP);
+}
+
+
+/** @brief Halt using deceleration curve and put bridges in Hi-Z.
+ *
+ */
+ void L6470::softHiZ()
+{
+    dspin_xfer(dSPIN_SOFT_HIZ);
+}
+
+
+/** @brief Put the bridges in Hi-Z state immediately with no deceleration.
+ *
+ */
+ void L6470::hardHiZ()
+{
+    dspin_xfer(dSPIN_HARD_HIZ);
+}
+
+
+ void L6470::releaseSW(uint8_t act, uint8_t dir)
+{
+    dspin_xfer(dSPIN_RELEASE_SW | act | dir);
+}
 
 
 /*   Generalization of the subsections of the register read/write functionality.

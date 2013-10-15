@@ -40,16 +40,15 @@ public:
 
     /********** Set Functions ************/
     void        setParam(uint8_t param, uint32_t value);
-    uint32_t    setAccel(float spss);
-    uint32_t    setDecel(float spss);
-    uint32_t    setMaxSpeed(float sps);
-    uint32_t    setSpeed(float sps);
-    uint32_t    setFSCutOff(float sps); // TODO
-    uint32_t    setINTSpeed(float sps); // TODO
+    void        setAccel(float spss);
+    void        setDecel(float spss);
+    void        setMaxSpeed(float sps);
+    void        setMinSpeed(float sps);
+    void        setFullStepThreshold(float sps);
     uint8_t     setMicroSteps(uint8_t val);
-    int32_t     setPosition(int32_t);   // TODO
-    int32_t     setPosition_FS(int32_t);// TODO
-    void        setMark();              // TODO
+    void        setPosition(int32_t);
+    void        setPosition_FS(int32_t);
+    int32_t     setMark();
     int         setConfig(uint32_t cfg);
     void        invert(uint8_t inv);
 
@@ -59,7 +58,7 @@ public:
     uint8_t     isInverted();
     uint32_t    getStatus();
     uint32_t    getConfig();
-    uint8_t     getDir();           // TODO
+    uint8_t     getDir();
     int32_t     getPosition();
     int32_t     getPosition_FS();
     uint32_t    getError();
@@ -67,9 +66,8 @@ public:
     float       getDecel();
     float       getMaxSpeed();
     float       getMinSpeed();
+    float       getFullStepThreshold();
     float       getSpeed();
-    float       getFSCutOff();      // TODO
-    float       getINTSpeed();      // TODO
     uint8_t     getMicroSteps();
     
     /********** Device Commands ***********/
@@ -81,10 +79,10 @@ public:
     void        gotoPosABS_FS(int32_t pos);
     void        gotoPos(int32_t pos);
     void        gotoPos_FS(int32_t pos);
+    void        gotoHome();
+    void        gotoMark();
     void        goUntil(uint8_t act, uint8_t dir, float spd);
     void        releaseSW(uint8_t act, uint8_t dir);
-    void        goHome();
-    void        goMark();
     void        resetPos();
     void        softStop();
     void        hardStop();
@@ -99,176 +97,6 @@ protected:
 };
 
 
-/** @brief If set to true, inverts the meaning of the direction bit.
-  *
-  * @inv - 0=Non-inverted | 1=Inverted
-  */
-inline void L6470::invert(uint8_t inv)
-{
-    if (inv) m_invertDir = 1;
-    else m_invertDir = 0;
-}
-
-
-/** @brief Returns 1 if direction is inverted 0 otherwise.
- *
- *  @return uint8_t: Inverted setting
- */
-inline uint8_t L6470::isInverted()
-{
-    return m_invertDir;
-}
-
-
-/** @brief Returns the number of microsteps per full step.
- *
- *  @return int: Microsteps per full physical motor step
- */
-inline uint8_t L6470::getMicroSteps()
-{
-    return m_msMode;
-}
-
-
-/** @brief Returns the value stored in the chip configuration register
- *
- *  @return uint32_t: Register value containing all the configuration bits
- */
-inline uint32_t L6470::getConfig()
-{
-    return getParam(dSPIN_CONFIG);
-}
-
-
-/** @brief Returns the current position stored in the chip as FULL STEPS
- *  
- *  This function returns the current position of the motor in full steps
- *  as a 32 bit integer.  Returns either a positive or negative number relative
- *  to the current 0 home position.
- *
- *  @return int32_t: Position value as signed value relative to home in full steps.
- */
-inline int32_t L6470::getPosition_FS()
-{
-    float pos = (getPosition() / m_msMode) + 0.5;
-    return (int32_t)pos;
-}
-
-
-
-/** @brief Move the motor the specified number of FULL STEPS and direction.
-  *
-  * Motor will accelerate, run to the relative number of FULL STEPS specified 
-  * and in the direction specified, then decelerate.
-  *
-  * @param  dir Motor direction 0=REV | 1=FWD
-  * @param  steps Number of FULL STEPS to move.
-  */
-inline void L6470::move_FS(int32_t steps)
-{
-    steps *= m_msMode;
-    move(steps);
-}
-
-
-/** @brief Moves the motor to the specfied absolute position in FULL STEPS.
- *
- *  @param pos The absolute position to move to in FULL Steps
- */
-inline void L6470::gotoPos_FS(int32_t pos)
-{
-    pos *= m_msMode;
-    gotoPos(pos);
-}
-
-
-/** @brief Moves to the specfied absolute position in FULL STEPS in the direction specified.
- *
- *  @param pos The position to move to in FULL Steps
- */
-inline void L6470::gotoPosABS_FS(int32_t pos)
-{
-    pos *= m_msMode;
-    gotoPosABS(pos);
-}
-
-
-inline void L6470::releaseSW(uint8_t act, uint8_t dir)
-{
-    dspin_xfer(dSPIN_RELEASE_SW | act | dir);
-}
-
-
-/** @brief Return to the abs position 0 at MAX_SPEED in shortest path possible.
- *
- */
-inline void L6470::goHome()
-{
-    dspin_xfer(dSPIN_GO_HOME);
-}
-
-
-/** @brief Goto positon in MARK register at MAX_SPEED in shortest distance
- *
- */
-inline void L6470::goMark()
-{
-    dspin_xfer(dSPIN_GO_MARK);
-}
-
-
-/** @brief Reset the position counter to zero
- *
- */
-inline void L6470::resetPos()
-{
-    dspin_xfer(dSPIN_RESET_POS);
-}
-
-
-/** @brief Reset the dSPIN chip to power on defaults
- *
- */
-inline void L6470::resetDev()
-{
-    dspin_xfer(dSPIN_RESET_DEVICE);
-}
-
-
-/** @brief Halt using the deceleration curve.
- *
- */
-inline void L6470::softStop()
-{
-    dspin_xfer(dSPIN_SOFT_STOP);
-}
-
-
-/** @brief Halt using infinite deceleration.
- *
- */
-inline void L6470::hardStop()
-{
-    dspin_xfer(dSPIN_HARD_STOP);
-}
-
-
-/** @brief Halt using deceleration curve and put bridges in Hi-Z.
- *
- */
-inline void L6470::softHiZ()
-{
-    dspin_xfer(dSPIN_SOFT_HIZ);
-}
-
-
-/** @brief Put the bridges in Hi-Z state immediately with no deceleration.
- *
- */
-inline void L6470::hardHiZ()
-{
-    dspin_xfer(dSPIN_HARD_HIZ);
-}
 
 /*
  Copyright (C) 2013 Kyle Crane
