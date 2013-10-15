@@ -23,6 +23,7 @@ enum I2CERR // I2C Error codes for errno inspection.
 class I_I2C
 {
 public:
+    virtual ~I_I2C() {};
     virtual int openBus(uint8_t slaveAdr)=0;
     virtual int closeBus()=0;
 	virtual int isReady()=0;
@@ -42,7 +43,7 @@ public:
     virtual uint16_t    rxWord(uint8_t reg)=0;
     
 protected:
-    virtual ~I_I2C() {};
+    
 };
 
 #endif
