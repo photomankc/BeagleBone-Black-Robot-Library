@@ -27,18 +27,18 @@ public:
 	int isReady();
 
     int tx(uint8_t* bytes, int count);
-    int txReg(uint8_t reg, uint8_t* bytes, int count);
+    int tx(int32_t reg, uint8_t* bytes, int count);
     int txByte(uint8_t bt);
-    int txByte(uint8_t reg, uint8_t byte);
+    int txByte(int32_t reg, uint8_t byte);
     int txWord(uint16_t wd);
-    int txWord(uint8_t reg, uint16_t wd);
+    int txWord(int32_t reg, uint16_t wd);
 
     int         rx(uint8_t* bytes, int count);
-    int         rxReg(uint8_t reg, uint8_t* bytes);
+    int         rx(int32_t reg, uint8_t* bytes);
     uint8_t     rxByte();
-    uint8_t     rxByte(uint8_t reg);
+    uint8_t     rxByte(int32_t reg);
     uint16_t    rxWord();
-    uint16_t    rxWord(uint8_t reg);
+    uint16_t    rxWord(int32_t reg);
 };
 
 #endif // I2C_H
