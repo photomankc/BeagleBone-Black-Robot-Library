@@ -1,19 +1,26 @@
-#ifndef __SFL6470__tmp102__
-#define __SFL6470__tmp102__
+#ifndef __tmp102__
+#define __tmp102__
 
 #include "i_i2c.h"
+
+enum TMP102_CONST
+{
+    TMP102_DFLT_ADR = 0x48
+};
 
 class TMP102
 {
 public:
-    TMP102(I_I2C* p_bus, uint8_t adr);
-    
-protected:
+    TMP102(I_I2C* bus, uint8_t address=TMP102_DFLT_ADR);
+    ~TMP102();
+
     float getTemp_F();
     float getTemp_C();
     
 protected:
     uint8_t     adr;
+    I_I2C*      p_bus;
+    int         ownBus;
 };
 
 /*
@@ -38,4 +45,4 @@ protected:
  SOFTWARE.
  */
 
-#endif /* defined(__SFL6470__tmp102__) */
+#endif /* defined(__tmp102__) */

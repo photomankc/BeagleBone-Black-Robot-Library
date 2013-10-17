@@ -1,5 +1,5 @@
 #include <unistd.h>
-#include "ADC_MCP3221.h"
+#include "adc_mcp3221.h"
 
 /** @brief Default Constructor
   *

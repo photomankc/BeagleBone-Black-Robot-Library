@@ -27,23 +27,23 @@ public:
     
     
     // Optional overides
-    virtual int devPresent() {ERR_I2C_NOT_IMPL;};
+    virtual int devPresent() {return ERR_I2C_NOT_IMPL;};
     
-    virtual int tx(int32_t reg, uint8_t* bytes, int count) {ERR_I2C_NOT_IMPL;};
-    virtual int txByte(uint8_t bt) {ERR_I2C_NOT_IMPL;};
-    virtual int txByte(int32_t reg, uint8_t byte) {ERR_I2C_NOT_IMPL;};
-    virtual int txWord(uint16_t wd) {ERR_I2C_NOT_IMPL;};
-    virtual int txWord(int32_t reg, uint16_t wd) {ERR_I2C_NOT_IMPL;};
-    virtual int txLong(uint32_t lg) {ERR_I2C_NOT_IMPL;};
-    virtual int txLong(uint32_t reg, uint32_t lg) {ERR_I2C_NOT_IMPL;};
+    virtual int tx(int32_t reg, uint8_t* bytes, int count) {return ERR_I2C_NOT_IMPL;};
+    virtual int txByte(uint8_t bt) {return ERR_I2C_NOT_IMPL;};
+    virtual int txByte(int32_t reg, uint8_t byte) {return ERR_I2C_NOT_IMPL;};
+    virtual int txWord(uint16_t wd) {return ERR_I2C_NOT_IMPL;};
+    virtual int txWord(int32_t reg, uint16_t wd) {return ERR_I2C_NOT_IMPL;};
+    virtual int txLong(uint32_t lg) {return ERR_I2C_NOT_IMPL;};
+    virtual int txLong(uint32_t reg, uint32_t lg) {return ERR_I2C_NOT_IMPL;};
     
-    virtual int         rx(uint32_t reg, uint8_t* bytes) {ERR_I2C_NOT_IMPL;};
-    virtual int8_t     rxByte() {return 0xFF};
-    virtual int8_t     rxByte(uint32_t reg) {return 0xFF};
-    virtual int16_t    rxWord() {return 0xFFFF};
-    virtual int16_t    rxWord(uint32_t reg) {return 0xFFFF};
-    virtual int32_t    rxLong() {return 0xFFFFFFFF};
-    virtual int32_t    rxLong(uint32_t reg) {return 0xFFFFFFFF};
+    virtual int         rx(uint32_t reg, uint8_t* bytes) {return ERR_I2C_NOT_IMPL;};
+    virtual int8_t     rxByte() {return 0xFF;};
+    virtual int8_t     rxByte(uint32_t reg) {return 0xFF;};
+    virtual int16_t    rxWord() {return 0xFFFF;};
+    virtual int16_t    rxWord(uint32_t reg) {return 0xFFFF;};
+    virtual int32_t    rxLong() {return 0xFFFFFFFF;};
+    virtual int32_t    rxLong(uint32_t reg) {return 0xFFFFFFFF;};
     
 protected:
     uint8_t m_adr;

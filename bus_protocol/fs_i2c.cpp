@@ -140,7 +140,7 @@ int FS_I2C::rx(int32_t reg, uint8_t* bytes)
 	return i2c_smbus_read_i2c_block_data(m_file, reg, bytes);
 }
 
-uint8_t FS_I2C::rxByte()
+int8_t FS_I2C::rxByte()
 {
 	uint8_t bt;
 
@@ -150,12 +150,12 @@ uint8_t FS_I2C::rxByte()
 	return bt;
 }
 
-uint8_t FS_I2C::rxByte(int32_t reg)
+int8_t FS_I2C::rxByte(int32_t reg)
 {
 	return i2c_smbus_read_byte_data(m_file, reg);
 }
 
-uint16_t FS_I2C::rxWord()
+int16_t FS_I2C::rxWord()
 {
 	uint8_t bt[2];
 
@@ -165,7 +165,7 @@ uint16_t FS_I2C::rxWord()
 	return (bt[0]<<8 | bt[1]);
 }
 
-uint16_t FS_I2C::rxWord(int32_t reg)
+int16_t FS_I2C::rxWord(int32_t reg)
 {
 	return i2c_smbus_read_word_data(m_file, reg);
 }
