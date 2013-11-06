@@ -37,13 +37,14 @@ public:
     virtual int txLong(uint32_t lg) {return ERR_I2C_NOT_IMPL;};
     virtual int txLong(uint32_t reg, uint32_t lg) {return ERR_I2C_NOT_IMPL;};
     
-    virtual int         rx(uint32_t reg, uint8_t* bytes) {return ERR_I2C_NOT_IMPL;};
+    virtual int        rx(int32_t reg, uint8_t* bytes)
+                         {return ERR_I2C_NOT_IMPL;};
     virtual int8_t     rxByte() {return 0xFF;};
-    virtual int8_t     rxByte(uint32_t reg) {return 0xFF;};
+    virtual int8_t     rxByte(int32_t reg) {return 0xFF;};
     virtual int16_t    rxWord() {return 0xFFFF;};
-    virtual int16_t    rxWord(uint32_t reg) {return 0xFFFF;};
+    virtual int16_t    rxWord(int32_t reg) {return 0xFFFF;};
     virtual int32_t    rxLong() {return 0xFFFFFFFF;};
-    virtual int32_t    rxLong(uint32_t reg) {return 0xFFFFFFFF;};
+    virtual int32_t    rxLong(int32_t reg) {return 0xFFFFFFFF;};
     
 protected:
     uint8_t m_adr;

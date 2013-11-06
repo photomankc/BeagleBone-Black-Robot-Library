@@ -2,26 +2,83 @@
 #define __tmp102__
 
 #include "i_i2c.h"
+#include "itempsensor.h"
 
 enum TMP102_CONST
 {
-    TMP102_DFLT_ADR = 0x48
+    TMP102_DFLT_ADR = 0x48,
+    TMP102_REG_TEMP = 0,
+    TMP102_REG_CFG  = 1,
+    TMP102_REG_TLOW = 2,
+    TMP102_REG_THGH = 3,
+    TMP102_FQ_1 = 0,
+    TMP102_FQ_2 = 1,
+    TMP102_FQ_4 = 2,
+    TMP102_FQ_6 = 3,
+    TMP102_CR_1_4 = 0x00,
+    TMP102_CR_1 = 0x40,
+    TMP102_CR_4 = 0x80,
+    TMP102_CR_8 = 0xC0,
+    TMP102_LSB = 1,
+    TMP102_MSB = 0
 };
 
-class TMP102
+enum TMP102_CFG_MASKS
+{
+    TMP102_MASK_CFG_SD  = 0x0100,
+    TMP102_MASK_CFG_TM  = 0x0200,
+    TMP102_MASK_CFG_POL = 0x0400,
+    TMP102_MASK_CFG_FQ  = 0x1800,
+    TMP102_MASK_CFG_R   = 0x6000,
+    TMP102_MASK_CFG_OS  = 0x8000,
+    TMP102_MASK_CFG_CR  = 0x00C0,
+    TMP102_MASK_CFG_AL  = 0x0020,
+    TMP102_MASK_CFG_EM  = 0x0010
+};
+
+
+/** @brief Class to represent the TMP102 I2C temperature measurement chip
+ *
+ *  This class represents the TMP102 I2C temperature measurement chip basic
+ *  operation.  This object requires access to an I2C bus that implements the 
+ *  I_I2C interface class.  TMP102 can use either a stack allocated and 
+ *  externaly managed I2C class or it can use a dynamicaly allocated I2C object 
+ *  for which it will manage the memory clean-up.  This class implements both
+ *  the continuous mode and one-shot mode of operation for the sensor.  None of
+ *  the chip thermostat features are implemented.
+ *
+ */
+class TMP102 : public ITempSensor
 {
 public:
     TMP102(I_I2C* bus, uint8_t address=TMP102_DFLT_ADR);
+    TMP102(I_I2C& bus, uint8_t address=TMP102_DFLT_ADR);
     ~TMP102();
 
-    float getTemp_F();
-    float getTemp_C();
+    int         isReady();
+    float       getTemp_F();
+    float       getTemp_C();
+
+    int32_t     getConfig();
+    void        setConfig(uint16_t cfg);
+    void        setOneShot(uint16_t val);
+    int         getOneShot();
+    void        setConversionRate(uint16_t val);
+    int         getConversionRate();
+
+private:
+    int32_t     read(int16_t reg);
+    int         write(int16_t reg, uint16_t val);
+    void        triggerOneShot();
+    int         oneShotReady();
     
 protected:
     uint8_t     adr;
     I_I2C*      p_bus;
     int         ownBus;
+    int         oneShotActive;
 };
+
 
 /*
  Copyright (C) 2013 Kyle Crane

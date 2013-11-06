@@ -2,7 +2,7 @@
 #define FS_I2C_H
 
 
-#include "i2c-dev.h"
+#include <i2c-dev.h>
 #include "i_i2c.h"
 #include <sys/types.h>
 #include <sys/stat.h>
