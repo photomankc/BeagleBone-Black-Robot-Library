@@ -19,12 +19,16 @@ TMP102::TMP102(I_I2C* bus, uint8_t address)
     p_bus   = 0;
     adr     = 0;
     oneShotActive = 0;
+    oneShotTrigger = 0;
+    enabled = 0;
+    cfgCache = -1;
     
     if (bus)
     {
         p_bus = bus;
         ownBus = 1;
         adr = address;
+        setEnable(1);
     }
 }
 
@@ -43,8 +47,11 @@ TMP102::TMP102(I_I2C& bus, uint8_t address)
 {
     ownBus  = 0;
     oneShotActive = 0;
+    oneShotTrigger = 0;
+    cfgCache = -1;
     p_bus = &bus;
     adr = address;
+    setEnable(1);
 }
 
 
@@ -75,35 +82,87 @@ int TMP102::isReady()
 
 /** @brief Returns the currently measured temperature in degrees F.
  *
- *  @return float: Measured temperature in degrees F.
+ *  @return float: Measured temperature in degrees F.  < -1024 for error.
  */
 float TMP102::getTemp_F()
 {
-    float tempC = getTemp_C();
-    if (tempC < 0)
-        return -65535.0;
-    return (tempC * 1.8) + 32;
+    if(enabled)
+    {
+        float tempC = getTemp_C();
+        if (tempC <= TMP102_ERR_BUS)
+            return tempC;
+        return (tempC * 1.8) + 32;
+    }
+    else
+        return TMP102_ERR_TEMP;
 }
 
 
 /** @brief Returns the currently measured temperature in degrees C.
  *
- *  @return float: Measured temperature in degrees C.
+ *  This is the base temperature measurement function.  If called while device
+ *  is in continuous conversion mode the function will return the temperature
+ *  in C immeadiately after it is read.  If the device is in one-shot mode the
+ *  function will return TMP102_ERR_NRDY until the conversion is complete or the
+ *  mode is changed.  This prevents the function from blocking while waiting 
+ *  for a conversion.
+ *
+ *  @return float: Measured temperature in degrees C. < -1024 for error.
  */
 float TMP102::getTemp_C()
 {
-    if (oneShotActive)
+    if (enabled)
     {
-        triggerOneShot();
-        while (!oneShotReady());
+        if (oneShotActive)
+        {   // Oneshot mode logic.  Triggers conversion if needed.
+            if (!oneShotTrigger)
+            {
+                triggerOneShot();
+                return TMP102_ERR_NRDY;
+            }
+            
+            int osRdy = oneShotReady();
+            if (!osRdy)
+            {
+                return TMP102_ERR_NRDY;
+            }
+            else if (osRdy)
+            {
+                oneShotTrigger = 0;
+            }
+        }
+        
+        int temperatureSum = read(TMP102_REG_TEMP);
+        if (temperatureSum <= TMP102_ERR_BUS)
+            return temperatureSum;
+        
+        temperatureSum >>= 4;
+        return temperatureSum * 0.0625;
+    }
+    else
+        return TMP102_ERR_TEMP;
+}
+
+
+/** @brief Enables or disables the object and device.
+ *  
+ *  @param val: 0 for disable, otherwise enable.
+ *  @return int: New enable state.
+ */
+int TMP102::setEnable(int val)
+{
+    if (val)
+    {
+        enabled = 1;
+        setOneShot(0);  // Clears shutdown in CFG register
+    }
+    else
+    {
+        setOneShot(1);  // Sets shutdown in CFG register
+        enabled = 0;
     }
     
-    int temperatureSum = read(TMP102_REG_TEMP);
-    
-    if (temperatureSum < 0)
-        return -65535.0;
-    temperatureSum >>= 4;
-    return temperatureSum * 0.0625;
+    return enabled;
 }
 
 
@@ -111,9 +170,33 @@ float TMP102::getTemp_C()
  *
  *  @return int32_t: The 16 bit config register value or -1 if there is a fault.
  */
-int32_t TMP102::getConfig()
+int32_t TMP102::getConfig(int force)
 {
-    return read(TMP102_REG_CFG);
+    
+    if (enabled)
+    {
+        if (force == TMP102_CACHE_FORCE)
+        {   // Perform a forced read of the config register.
+            cfgCache = read(TMP102_REG_CFG);
+            return cfgCache;
+        }
+        else
+        {   // Use cached version of register if we have one. Or read the
+            // register if we don't.
+            if (cfgCache >= 0)
+            {
+                return cfgCache;
+            }
+            else
+            {
+                cfgCache = read(TMP102_REG_CFG);
+                return cfgCache;
+            }
+        }
+            
+    }
+    else
+        return -1;
 }
 
 
@@ -123,7 +206,11 @@ int32_t TMP102::getConfig()
  */
 void TMP102::setConfig(uint16_t cfg)
 {
-    write(TMP102_REG_CFG, cfg);
+    if (enabled)
+    {
+        write(TMP102_REG_CFG, cfg);
+        cfgCache = -1;
+    }
 }
 
 
@@ -133,38 +220,55 @@ void TMP102::setConfig(uint16_t cfg)
  */
 void TMP102::setOneShot(uint16_t val)
 {
-    // One shot is availible when the device is in shutdown mode
-    int32_t regVal = getConfig();
-    
-    if (val)
+    if (enabled)
     {
-        regVal |= TMP102_MASK_CFG_SD;
-        oneShotActive = 1;
+        // One shot is availible when the device is in shutdown mode
+        int32_t regVal = getConfig();
+        if (regVal >= 0)
+        {
+            if (val)
+            {
+                regVal |= TMP102_MASK_CFG_SD;
+                oneShotActive = 1;
+                oneShotTrigger = 0;
+            }
+            else
+            {
+                regVal &= ~TMP102_MASK_CFG_SD;
+                oneShotActive = 0;
+                oneShotTrigger = 0;
+            }
+            
+            setConfig(regVal);
+        }
     }
-    else
-    {
-        regVal &= ~TMP102_MASK_CFG_SD;
-        oneShotActive = 0;
-    }
-    
-    setConfig(regVal);
 }
 
 
 /** @brief Returns the one-shot mode setting.
  *
- *  @return int: 1 if enabled or 0 otherwise.
+ *  @return int: 1 if enabled or 0 otherwise.  -1 for error.
  */
 int TMP102::getOneShot()
 {
-    // One shot is available if the device is in shutdown mode
-    int32_t regVal = getConfig();
-    int32_t shutDwn = regVal & TMP102_MASK_CFG_SD;
-    
-    if(shutDwn)
-        return 1;
-    
-    return 0;
+    if (enabled)
+    {
+        // One shot is available if the device is in shutdown mode
+        int32_t regVal = getConfig();
+        if(regVal >= 0)
+        {
+            int32_t shutDwn = regVal & TMP102_MASK_CFG_SD;
+            
+            if(shutDwn)
+                return 1;
+            else
+                return 0;
+        }
+        else
+            return -1;
+    }
+    else
+        return -1;
 }
 
 
@@ -174,10 +278,20 @@ int TMP102::getOneShot()
  */
 int TMP102::getConversionRate()
 {
-    int32_t regVal = getConfig();
-    int rate = regVal & TMP102_MASK_CFG_CR;
-    
-    return rate >> 6;
+    if (enabled)
+    {
+        int32_t regVal = getConfig();
+        if (regVal >= 0)
+        {
+            int rate = regVal & TMP102_MASK_CFG_CR;
+            
+            return rate >> 6;
+        }
+        else
+            return -1;
+    }
+    else
+        return -1;
 }
 
 
@@ -187,14 +301,19 @@ int TMP102::getConversionRate()
  */
 void TMP102::setConversionRate(uint16_t val)
 {
-    int32_t regVal = getConfig();
-    
-    if (val > 3) val = 3;
-    val <<= 6;
-    
-    regVal &= ~TMP102_MASK_CFG_CR;
-    regVal |= val;
-    setConfig(regVal);
+    if (enabled)
+    {
+        int32_t regVal = getConfig();
+        if (regVal >= 0)
+        {
+            if (val > 3) val = 3;
+            val <<= 6;
+            
+            regVal &= ~TMP102_MASK_CFG_CR;
+            regVal |= val;
+            setConfig(regVal);
+        }
+    }
 }
 
 
@@ -221,7 +340,8 @@ int32_t TMP102::read(int16_t reg)
     else
         return -1;
     
-    // Have to reverse the byte order.
+    // Have to reverse the byte order.  TMP102 transmits in reverse to expected
+    // word byte order.
     uint8_t bytes[2];
     bytes[TMP102_MSB] = val;
     bytes[TMP102_LSB] = val >> 8;
@@ -237,7 +357,7 @@ int32_t TMP102::read(int16_t reg)
  */
 int TMP102::write(int16_t reg, uint16_t val)
 {
-    // Reverse the byte order to transmit porperly.
+    // Reverse the byte order to transmit word as the TMP102 expects.
     uint8_t bytes[2];
     bytes[TMP102_LSB] = val;
     bytes[TMP102_MSB] = val >> 8;
@@ -270,11 +390,17 @@ int TMP102::write(int16_t reg, uint16_t val)
  */
 void TMP102::triggerOneShot()
 {
-    // Trigger a one-shot conversion by writing 1 to OS bit.
-    int32_t regVal = getConfig();
-    
-    regVal |= TMP102_MASK_CFG_OS;
-    setConfig(regVal);
+    if (enabled)
+    {
+        // Trigger a one-shot conversion by writing 1 to OS bit.
+        int32_t regVal = getConfig(TMP102_CACHE_FORCE);
+        if(regVal >= 0)
+        {
+            regVal |= TMP102_MASK_CFG_OS;
+            oneShotTrigger = 1;
+            setConfig(regVal);
+        }
+    }
 }
 
 
@@ -284,10 +410,19 @@ void TMP102::triggerOneShot()
  */
 int TMP102::oneShotReady()
 {
-    int32_t regVal = getConfig();
-    
-    if (regVal & TMP102_MASK_CFG_OS)
-        return 1;
+    if (enabled)
+    {   // Do a forced config read since the bit can change without a write.
+        int32_t regVal = getConfig(TMP102_CACHE_FORCE);
+        if (regVal >= 0)
+        {
+            if (regVal & TMP102_MASK_CFG_OS)
+                return 1;
+            else
+                return 0;
+        }
+        else
+            return 0;
+    }
     else
         return 0;
 }

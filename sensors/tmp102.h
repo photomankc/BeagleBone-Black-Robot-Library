@@ -20,7 +20,12 @@ enum TMP102_CONST
     TMP102_CR_4 = 0x80,
     TMP102_CR_8 = 0xC0,
     TMP102_LSB = 1,
-    TMP102_MSB = 0
+    TMP102_MSB = 0,
+    TMP102_CACHE_FORCE = 1,
+    TMP102_CACHE_INVALID = -1,
+    TMP102_ERR_TEMP = -1024,
+    TMP102_ERR_BUS  = -1025,
+    TMP102_ERR_NRDY = -1026,
 };
 
 enum TMP102_CFG_MASKS
@@ -58,8 +63,9 @@ public:
     int         isReady();
     float       getTemp_F();
     float       getTemp_C();
+    int         setEnable(int val);
 
-    int32_t     getConfig();
+    int32_t     getConfig(int force=0);
     void        setConfig(uint16_t cfg);
     void        setOneShot(uint16_t val);
     int         getOneShot();
@@ -74,9 +80,11 @@ private:
     
 protected:
     uint8_t     adr;
+    int32_t     cfgCache;
     I_I2C*      p_bus;
     int         ownBus;
     int         oneShotActive;
+    int         oneShotTrigger;
 };
 
 
