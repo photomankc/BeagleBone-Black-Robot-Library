@@ -1,6 +1,4 @@
-#include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include "tmp102.h"
 
 /** @brief Create a TMP102 temp sensor object with captive I2C bus
@@ -132,9 +130,10 @@ float TMP102::getTemp_C()
             }
         }
         
+        // Obtain the temp reg value and convert to C.
         int temperatureSum = read(TMP102_REG_TEMP);
         if (temperatureSum <= TMP102_ERR_BUS)
-            return temperatureSum;
+            return temperatureSum;  // Return error value
         
         temperatureSum >>= 4;
         return temperatureSum * 0.0625;
@@ -209,7 +208,7 @@ void TMP102::setConfig(uint16_t cfg)
     if (enabled)
     {
         write(TMP102_REG_CFG, cfg);
-        cfgCache = -1;
+        cfgCache = -1;  //Clear the cached value.
     }
 }
 
