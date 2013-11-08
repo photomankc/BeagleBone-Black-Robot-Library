@@ -1,8 +1,9 @@
 #include <iostream>
 #include "bbgpio_mgr.h"
 
+
 // Static class data
-unordered_map<int, GPIO_PinData>	BBGPIO_Mgr::ms_pinStore;
+std::unordered_map<int, GPIO_PinData>	BBGPIO_Mgr::ms_pinStore;
 int 				BBGPIO_Mgr::ms_instanceID=0;
 
 /** @brief Construct a default BBGPIO_Mgr object
@@ -15,7 +16,7 @@ BBGPIO_Mgr::BBGPIO_Mgr()
 
 
 
-/** @brief Construct a BBGPIO_Mgr object with the request operation mode
+/** @brief Construct a BBGPIO_Mgr object with the requested operation mode
   *
   * \param mode Integer, [BGPIO_MGR_MODEFS | BBGPIO_MGR_MODEMEM]
   */
@@ -41,7 +42,7 @@ BBGPIO_Mgr::~BBGPIO_Mgr()
 	{
 		deleteAll();
 		#ifdef DEBUG
-		cout << "  Destroyed BBGPIO_Mgr ID: " << m_id << endl;
+		std::cout << "  Destroyed BBGPIO_Mgr ID: " << m_id << std::endl;
 		#endif
 	}
 }
@@ -57,7 +58,7 @@ void BBGPIO_Mgr::init()
     ms_pinStore.reserve(BBGPIO_MGR_PINCNT);
 
 	#ifdef DEBUG
-	cout << "  Created BBGPIO_Mgr ID: " << m_id << endl;
+	std::cout << "  Created BBGPIO_Mgr ID: " << m_id << std::endl;
 	#endif
 }
 
@@ -70,7 +71,7 @@ void BBGPIO_Mgr::init()
   * \return GPIO_Pin pointer or NULL on failure.
   */
 GPIO_Pin* BBGPIO_Mgr::aquirePin(int headerNum)
-{;
+{
 	int result = 0;
 
 	if (m_mode == BBGPIO_MGR_MODEFS)
@@ -105,7 +106,7 @@ GPIO_Pin* BBGPIO_Mgr::aquirePin(int headerNum)
 				return NULL;
 			}
 
-			result = pinData.m_pPin->set_dir(INPUT);
+			result = pinData.m_pPin->set_dir(GPIO_IN);
 			if (result < 0)
 			{
 				// If the direction can't be set, note the error, delete, and return NULL
@@ -120,7 +121,7 @@ GPIO_Pin* BBGPIO_Mgr::aquirePin(int headerNum)
 			ms_pinStore[headerNum] = pinData;
 
 			#ifdef DEBUG
-			cout << "  Aquired GPIO_Pin[" << headerNum << "] : [" << pinData.m_kernPin << "]"<< endl;
+			std::cout << "  Aquired GPIO_Pin[" << headerNum << "] : [" << pinData.m_kernPin << "]"<< std::endl;
 			#endif
 			return pinData.m_pPin;
 		}
@@ -131,7 +132,7 @@ GPIO_Pin* BBGPIO_Mgr::aquirePin(int headerNum)
 			GPIO_PinData &pinData = ms_pinStore[headerNum];
 			pinData.m_refCnt++;
 			#ifdef DEBUG
-			cout << "  Aquired GPIO_Pin[" << headerNum << "] Ref:" << pinData.m_refCnt << endl;
+			std::cout << "  Aquired GPIO_Pin[" << headerNum << "] Ref:" << pinData.m_refCnt << std::endl;
 			#endif
 			return pinData.m_pPin;
 		}
@@ -140,7 +141,7 @@ GPIO_Pin* BBGPIO_Mgr::aquirePin(int headerNum)
 	{
 		// TODO: For future Memory Mapped pins
 		#ifdef DEBUG
-		cout << "  How did we get here?" << endl;
+		std::cout << "  How did we get here?" << std::endl;
 		#endif
 		return NULL;
 	}
@@ -164,7 +165,7 @@ int BBGPIO_Mgr::releasePin(GPIO_Pin* p_Pin)
 	if (ms_pinStore.count(gpioNum) == 0)
 	{
 		#ifdef DEBUG
-		cout << "  GPIO_Pin[" << gpioNum << "] - No such pin aquired!" << endl;
+		std::cout << "  GPIO_Pin[" << gpioNum << "] - No such pin aquired!" << std::endl;
 		#endif
 		return GPIO_GENERR;
 	}
@@ -178,13 +179,13 @@ int BBGPIO_Mgr::releasePin(GPIO_Pin* p_Pin)
 			delete pinData.m_pPin;
 			ms_pinStore.erase(gpioNum);
 			#ifdef DEBUG
-			cout << "  Released GPIO_Pin[" << gpioNum << "]" << endl;
+			std::cout << "  Released GPIO_Pin[" << gpioNum << "]" << std::endl;
 			#endif // DEBUG
 		}
 		else
 		{
 			#ifdef DEBUG
-			cout << "  Released reference to GPIO_Pin[" << gpioNum << "]" << endl;
+			std::cout << "  Released reference to GPIO_Pin[" << gpioNum << "]" << std::endl;
 			#endif // DEBUG
 		}
 	}
@@ -207,7 +208,7 @@ int BBGPIO_Mgr::deletePin(int headerNum)
         delete pinData.m_pPin;
         ms_pinStore.erase(headerNum);
         #ifdef DEBUG
-        cout << "  Deleted GPIO_Pin[" << headerNum << "]"<< endl;
+        std::cout << "  Deleted GPIO_Pin[" << headerNum << "]"<< std::endl;
         #endif
         return 0;
     }
@@ -235,7 +236,7 @@ int BBGPIO_Mgr::deleteAll()
             ms_pinStore.erase(i);
             delCnt++;
             #ifdef DEBUG
-            cout << "  Deleted GPIO_Pin[" << i << "]"<< endl;
+            std::cout << "  Deleted GPIO_Pin[" << i << "]"<< std::endl;
             #endif
         }
     }

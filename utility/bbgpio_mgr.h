@@ -41,7 +41,7 @@ class BBGPIO_Mgr
         int m_lastErr;  /**<Integer, error code from last operation */
 
         static int  ms_instanceID;
-        static unordered_map<int, GPIO_PinData> ms_pinStore;
+        static std::unordered_map<int, GPIO_PinData> ms_pinStore;
 
     public:
         BBGPIO_Mgr();
