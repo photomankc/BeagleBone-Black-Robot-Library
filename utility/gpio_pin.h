@@ -1,15 +1,6 @@
 #ifndef GPIO_PIN_H
 #define GPIO_PIN_H
 
-/** GPIO_Pin Class.
-* Class to represent BeagleBone GPIO pins.  Base class to represent basic interface to GPIO pins
-* Child classes define the specfic interfaces to different methods of GPIO access.  All GPIO classes
-* will implement the basic set of funtions here.
-*
-*   \author     Kyle Crane
-*   \version    0.9.0
-*/
-
 #include <fstream>
 #include <string>
 #include <iostream>
@@ -50,7 +41,17 @@ enum GPIO_ERRORS
     GPIO_RESERR  = -4,
 };
 
-
+/** @brief Generic GPIO pin class allowing basic digital I/O functions.
+ *  
+ *  This represents a base class for all GPIO_Pin types.  Custom implentations
+ *  should override this class and provide the interface functions spelled out
+ *  here.  Hardware specific information should managed in the gpio_pin_defs.h 
+ *  file using defines to implement for specific hardware platforms as GPIO 
+ *  availiblity varies wildy between them.
+ *
+ *  @author     Kyle Crane
+ *  @version    1.0.0
+ */
 class GPIO_Pin
 {
  protected:
